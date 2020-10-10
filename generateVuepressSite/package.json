@@ -1,0 +1,23 @@
+{
+  "name": "generate-vuepress-site",
+  "version": "0.1.0",
+  "description": "Wrapper lib to generate the vuepress static site",
+  "main": "./src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Enkel-Digital/FAQ-Builder.git"
+  },
+  "author": "JJ",
+  "license": "AGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/Enkel-Digital/FAQ-Builder/issues"
+  },
+  "homepage": "https://github.com/Enkel-Digital/FAQ-Builder#readme",
+  "dependencies": {
+    "@vuepress/theme-default": "^1.6.0",
+    "vuepress": "^1.6.0"
+  }
+}
