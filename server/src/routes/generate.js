@@ -8,10 +8,12 @@
 const express = require("express");
 const router = express.Router();
 const fs = require("fs").promises;
-const cloudStorage = require("../utils/cloudStorage");
 const logger = require("@lionellbriones/logging").default("routes:generate");
 
+const createDirIfDontExists = require("../utils/createDirIfDontExists");
 const generateVuepressSite = require("generate-vuepress-site");
+const createBucket = require("../utils/createBucket");
+const uploadDir = require("../utils/uploadDirGS");
 
 function generateJsonFromMarkdown(markdown) {}
 function generateMarkdownFromJson(json) {
@@ -30,7 +32,12 @@ router.post("/", express.json(), async (req, res) => {
   try {
     const { customerID } = req.query;
 
-    // Can there be more then 1 file?
+    // @todo Track and limit user updates for the site according to their plan
+
+    // Create the dir for the markdown files themselves
+    createDirIfDontExists(`/tmp/vuepress-markdown/${customerID}`);
+
+    // @todo Can there be more then 1 file?
     const markdownFilePath = `/tmp/vuepress-markdown/${customerID}/README.md`;
 
     // @todo primarily for testing -- Change to use storage service instead of the ephemeral container storage
@@ -39,41 +46,25 @@ router.post("/", express.json(), async (req, res) => {
     });
 
     // start async background job to generate the site and push live when done.
-    // Should we use seperate processes? Or like torus relayer split into diff rabbitmq processes
-
+    // @todo Should we use seperate processes? Or like torus relayer split into diff rabbitmq processes
     await generateVuepressSite(
-      markdownFilePath,
+      // Pass in dir of the markdown files instead of just the README file itself.
+      `/tmp/vuepress-markdown/${customerID}`,
       `/tmp/vuepress-generated/${customerID}`
     );
 
-    // Update stats
+    // @todo Update stats in DB
+
+    // Create bucket if it does not exists yet
+    await createBucket(`ekd-faq-builder-customer-${customerID}`);
 
     // Push site live to static hosting service
-    // Uploads a local file to the bucket
-    // Get all the files in the output directory and upload 1 by 1?
-    // @todo Nested directory?
-    await Promise.all(
-      (await fs.readdir(`/tmp/vuepress-generated/${customerID}`)).map(
-        (filePath) =>
-          /* Might wanna see waht is file Path first... */
-          cloudStorage
-            .bucket(`/tmp/vuepress-generated/${customerID}`)
-            // @todO Might use diff slash
-            // Might not wanna pop, and use the full path
-            .upload(filePath.split("/").pop(), {
-              // Support for HTTP requests made with `Accept-Encoding: gzip`
-              gzip: true,
-              // By setting the option `destination`, you can change the name of the
-              // object you are uploading to a bucket.
-              metadata: {
-                // Enable long-lived HTTP caching headers
-                // Use only if the contents of the file will never change
-                // (If the contents will change, use cacheControl: 'no-cache')
-                cacheControl: "public, max-age=31536000",
-              },
-            })
-      )
+    await uploadDir(
+      `/tmp/vuepress-generated/${customerID}`,
+      `ekd-faq-builder-customer-${customerID}`
     );
+
+    // @todo Clean up, delete the directory
 
     res.status(200).json({ ok: true });
   } catch (error) {
