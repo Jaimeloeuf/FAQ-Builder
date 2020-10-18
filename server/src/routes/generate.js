@@ -51,6 +51,7 @@ router.post("/", express.json(), async (req, res) => {
     // Push site live to static hosting service
     // Uploads a local file to the bucket
     // Get all the files in the output directory and upload 1 by 1?
+    // @todo Nested directory?
     await Promise.all(
       (await fs.readdir(`/tmp/vuepress-generated/${customerID}`)).map(
         (filePath) =>
