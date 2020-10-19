@@ -9,15 +9,20 @@ const storage = require("./cloudStorage");
 async function bucketExists(bucketName) {
   if (!bucketName) throw new Error("Missing bucket name");
 
-  // Get bucket metadata.
-  const [metadata] = await storage.bucket(bucketName).getMetadata();
+  try {
+    // Get bucket metadata.
+    const [metadata] = await storage.bucket(bucketName).getMetadata();
 
-  // End if no metadata
-  if (!metadata) return false;
+    verboseLog(`---- Start Bucket Metadata ----`);
+    for (const [key, value] of Object.entries(metadata))
+      verboseLog(`${key}: ${value}`);
+    verboseLog(`---- End   Bucket Metadata ----`);
 
-  for (const [key, value] of Object.entries(metadata))
-    verboseLog(`${key}: ${value}`);
-  return true;
+    return true;
+  } catch (error) {
+    // @todo Here we naievly take it that the error is a Bucket not found error
+    return false;
+  }
 }
 
 module.exports = async function createBucket(bucketName) {

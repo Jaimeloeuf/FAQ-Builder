@@ -14,6 +14,7 @@ const createDirIfDontExists = require("../utils/createDirIfDontExists");
 const generateVuepressSite = require("generate-vuepress-site");
 const createBucket = require("../utils/createBucket");
 const uploadDir = require("../utils/uploadDirGS");
+const verboseLog = require("../utils/verboseLog");
 
 function generateJsonFromMarkdown(markdown) {}
 function generateMarkdownFromJson(json) {
@@ -45,27 +46,42 @@ router.post("/", express.json(), async (req, res) => {
     // @todo Can there be more then 1 file?
     const markdownFilePath = `/tmp/vuepress-markdown/${customerID}/README.md`;
 
+    verboseLog("Generating markdown file and writing to disk...");
+
     // @todo primarily for testing -- Change to use storage service instead of the ephemeral container storage
     await fs.writeFile(markdownFilePath, generateMarkdownFromJson(req.body), {
       flag: "w",
     });
+
+    verboseLog("Markdown file generated and on disk");
+
+    verboseLog("Generating vuepress site...");
 
     // start async background job to generate the site and push live when done.
     // Pass in dir of the markdown files instead of just the README file itself.
     // @todo Should we use seperate processes? Or like torus relayer split into diff rabbitmq processes
     await generateVuepressSite(markdownDir, generatedDir);
 
+    verboseLog("vuepress site generated");
+
     // @todo Update stats in DB
+
+    verboseLog("Ensuring cloud storage bucket exists...");
 
     // Create bucket if it does not exists yet
     await createBucket(`ekd-faq-builder-customer-${customerID}`);
 
+    verboseLog("Uploading vuepress static site to Cloud Storage...");
+
     // Push site live to static hosting service
     await uploadDir(generatedDir, `ekd-faq-builder-customer-${customerID}`);
+
+    verboseLog("Static content uploaded");
 
     // @todo Clean up, delete the directory
     // await deleteTemporaryDirectory(markdownDir)
 
+    // @todo Respond first that job has started in background, and return a endpoint for client to poll to see if request completed
     res.status(200).json({ ok: true });
   } catch (error) {
     logger.error(error);
