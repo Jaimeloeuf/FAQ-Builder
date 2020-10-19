@@ -22,30 +22,19 @@
 //   description: Uploads full hierarchy of a local directory to a bucket.
 //   usage: node files.js upload-directory <bucketName> <directoryPath>
 
-// @todo Can bucketName be left blank?
+/**
+ * @todo Convert to use fs' promise API
+ *
+ * @param {String} directoryPath Name of a bucket, e.g. my-bucket
+ * @param {String} bucketName Local directory to upload, e.g. ./local/path/to/directory'
+ */
 module.exports = async function main(directoryPath, bucketName) {
-  // [START upload_directory]
-  // Imports the Google Cloud client library
-  const { Storage } = require("@google-cloud/storage");
+  const storage = require("./cloudStorage");
   const fs = require("fs");
   const path = require("path");
   const fileList = [];
 
-  /**
-   * TODO(developer): Uncomment the following lines before running the sample.
-   */
-  // const bucketName = 'Name of a bucket, e.g. my-bucket';
-  // const directoryPath = 'Local directory to upload, e.g. ./local/path/to/directory';
-
   async function uploadDirectory() {
-    // Creates a client
-    // const storage = new Storage();
-    // @todo ????? WTH how come in routes is cwd rel path then here is mod rel path
-    const storage = new Storage({
-      keyFilename: "../../serviceAccountKey.json",
-      // keyFilename: "./serviceAccountKey.json",
-    });
-
     // get the list of files from the specified directory
     let dirCtr = 1;
     let itemCtr = 0;
@@ -87,6 +76,8 @@ module.exports = async function main(directoryPath, bucketName) {
           if (process.platform === "win32") {
             destination = destination.replace(/\\/g, "/");
           }
+          // @todo fix the file path so it is all stored flat in root of bucket
+          console.log("destination", filePath, destination);
           return storage
             .bucket(bucketName)
             .upload(filePath, { destination })
@@ -108,6 +99,5 @@ module.exports = async function main(directoryPath, bucketName) {
     }
   }
 
-  uploadDirectory().catch(console.error);
-  // [END upload_directory]
+  return uploadDirectory();
 };

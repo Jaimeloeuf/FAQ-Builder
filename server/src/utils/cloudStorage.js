@@ -1,17 +1,11 @@
 /**
- * Module wrapper around firebase cloud storage
+ * Module wrapper around the google cloud storage lib with credentials and projectID passed in
  * @author JJ
  * @module DB singleton
  */
 
-// Same bucket for all users? Or seperate bucket for different users?
-// module.exports = require("./firebaseAdmin")({
-//   storageBucket: "<BUCKET_NAME>.appspot.com",
-// })
-//   .storage()
-//   .bucket();
-
-// Use diff buckets, as the upload is by per file
-module.exports = require("./firebaseAdmin")({
-  storageBucket: "<BUCKET_NAME>.appspot.com",
-}).storage();
+const { Storage } = require("@google-cloud/storage");
+module.exports = new Storage({
+  keyFilename: "./serviceAccountKey.json",
+  projectId: "class-express-faq-test",
+});
