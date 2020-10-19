@@ -1,9 +1,4 @@
-const fs = require("fs");
+const fs = require("fs").promises;
 
-module.exports = function (path) {
-  // @todo Use fs promises API instead
-  if (!fs.existsSync(path))
-    fs.mkdirSync(path, { recursive: true }, (err) => {
-      if (err) throw err;
-    });
-};
+// Create directory recursively, if already exists, will just ignore request
+module.exports = async (path) => fs.mkdir(path, { recursive: true });

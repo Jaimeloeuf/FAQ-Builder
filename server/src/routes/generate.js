@@ -30,12 +30,17 @@ function generateMarkdownFromJson(json) {
  */
 router.post("/", express.json(), async (req, res) => {
   try {
+    // @todo This should be URL param
     const { customerID } = req.query;
+
+    // Both these directories are all scoped to the customer's ID
+    const markdownDir = `/tmp/vuepress-markdown/${customerID}`;
+    const generatedDir = `/tmp/vuepress-generated/${customerID}`;
 
     // @todo Track and limit user updates for the site according to their plan
 
     // Create the dir for the markdown files themselves
-    createDirIfDontExists(`/tmp/vuepress-markdown/${customerID}`);
+    await createDirIfDontExists(markdownDir);
 
     // @todo Can there be more then 1 file?
     const markdownFilePath = `/tmp/vuepress-markdown/${customerID}/README.md`;
@@ -46,12 +51,9 @@ router.post("/", express.json(), async (req, res) => {
     });
 
     // start async background job to generate the site and push live when done.
+    // Pass in dir of the markdown files instead of just the README file itself.
     // @todo Should we use seperate processes? Or like torus relayer split into diff rabbitmq processes
-    await generateVuepressSite(
-      // Pass in dir of the markdown files instead of just the README file itself.
-      `/tmp/vuepress-markdown/${customerID}`,
-      `/tmp/vuepress-generated/${customerID}`
-    );
+    await generateVuepressSite(markdownDir, generatedDir);
 
     // @todo Update stats in DB
 
@@ -59,12 +61,10 @@ router.post("/", express.json(), async (req, res) => {
     await createBucket(`ekd-faq-builder-customer-${customerID}`);
 
     // Push site live to static hosting service
-    await uploadDir(
-      `/tmp/vuepress-generated/${customerID}`,
-      `ekd-faq-builder-customer-${customerID}`
-    );
+    await uploadDir(generatedDir, `ekd-faq-builder-customer-${customerID}`);
 
     // @todo Clean up, delete the directory
+    // await deleteTemporaryDirectory(markdownDir)
 
     res.status(200).json({ ok: true });
   } catch (error) {
