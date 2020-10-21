@@ -44,7 +44,7 @@ router.post("/", express.json(), async (req, res) => {
     await createDirIfDontExists(markdownDir);
 
     // @todo Can there be more then 1 file?
-    const markdownFilePath = `/tmp/vuepress-markdown/${customerID}/README.md`;
+    const markdownFilePath = `${markdownDir}/README.md`;
 
     verboseLog("Generating markdown file and writing to disk...");
 
@@ -53,7 +53,21 @@ router.post("/", express.json(), async (req, res) => {
       flag: "w",
     });
 
-    verboseLog("Markdown file generated and on disk");
+    verboseLog("Generating vuepress config file and writing to disk...");
+
+    const vuepressConfigDir = `${markdownDir}/.vuepress`;
+
+    // Create dir for vuepress configurations
+    await createDirIfDontExists(vuepressConfigDir);
+
+    await fs.writeFile(
+      `${vuepressConfigDir}/config.js`,
+      // Set a base URL path to the bucket name when using google cloud storage bucket
+      `module.exports = { base: "/ekd-faq-builder-customer-${customerID}/" };`,
+      {
+        flag: "w",
+      }
+    );
 
     verboseLog("Generating vuepress site...");
 

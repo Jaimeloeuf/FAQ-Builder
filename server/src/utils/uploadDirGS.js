@@ -22,6 +22,16 @@
 //   description: Uploads full hierarchy of a local directory to a bucket.
 //   usage: node files.js upload-directory <bucketName> <directoryPath>
 
+const storage = require("./cloudStorage");
+const fs = require("fs");
+const path = require("path");
+
+// If running on Windows
+const getDestination = (pathDirName, filePath) =>
+  process.platform === "win32"
+    ? path.relative(`${pathDirName}`, filePath).replace(/\\/g, "/")
+    : path.relative(`${pathDirName}`, filePath);
+
 /**
  * @todo Convert to use fs' promise API
  *
@@ -29,16 +39,12 @@
  * @param {String} bucketName Local directory to upload, e.g. ./local/path/to/directory'
  */
 module.exports = async function main(directoryPath, bucketName) {
-  const storage = require("./cloudStorage");
-  const fs = require("fs");
-  const path = require("path");
   const fileList = [];
 
   async function uploadDirectory() {
     // get the list of files from the specified directory
     let dirCtr = 1;
     let itemCtr = 0;
-    const pathDirName = path.dirname(directoryPath);
 
     getFiles(directoryPath);
 
@@ -71,11 +77,8 @@ module.exports = async function main(directoryPath, bucketName) {
     async function onComplete() {
       const resp = await Promise.all(
         fileList.map((filePath) => {
-          let destination = path.relative(pathDirName, filePath);
-          // If running on Windows
-          if (process.platform === "win32") {
-            destination = destination.replace(/\\/g, "/");
-          }
+          const destination = getDestination(directoryPath, filePath);
+
           // @todo fix the file path so it is all stored flat in root of bucket
           console.log("destination", filePath, destination);
           return storage
@@ -93,9 +96,13 @@ module.exports = async function main(directoryPath, bucketName) {
 
       const successfulUploads =
         fileList.length - resp.filter((r) => r.status instanceof Error).length;
+
       console.log(
-        `${successfulUploads} files uploaded to ${bucketName} successfully.`
+        `Successfully uploaded ${successfulUploads} files to ${bucketName}`
       );
+
+      if (fileList.length - successfulUploads > 0)
+        console.log(`${fileList.length - successfulUploads} files failed`);
     }
   }
 
